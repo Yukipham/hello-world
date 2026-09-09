@@ -3,12 +3,12 @@ name: Build Survival Village V0.3 APK
 on:
   push:
     branches:
-      - chatgpt-survival-v02-build
+      - chatgpt-survival-v03-build
   workflow_dispatch:
 
 env:
   GODOT_VERSION: 4.5.1
-  PROJECT_PATH: survival-v03
+  PROJECT_PATH: survival-v03-ci
   EXPORT_NAME: SurvivalVillageV03
 
 jobs:
@@ -21,11 +21,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Unpack V0.3 project
+      - name: Assemble V0.3 source
         run: |
-          rm -rf "$PROJECT_PATH"
-          mkdir -p "$PROJECT_PATH"
-          unzip -q survival-v03.zip -d "$PROJECT_PATH"
+          cd "$PROJECT_PATH"
+          cat part00.gd part01.gd part02.gd part03.gd part04.gd part05.gd > main.gd
+          wc -l main.gd
 
       - name: Setup Godot export templates
         run: |
