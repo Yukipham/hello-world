@@ -25,6 +25,7 @@ jobs:
         run: |
           cd "$PROJECT_PATH"
           cat part00.gd part01.gd part02.gd part03.gd part04.gd part05.gd > main.gd
+          sed -i 's/var d:=event.position-joy_origin/var d: Vector2 = event.position-joy_origin/' main.gd
           wc -l main.gd
 
       - name: Setup Godot export templates
