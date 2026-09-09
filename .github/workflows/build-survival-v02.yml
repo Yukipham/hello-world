@@ -29,6 +29,12 @@ jobs:
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
           godot --version
 
+      - name: Normalize V0.2 for Godot 4.5.1 CI
+        run: |
+          sed -i 's/var drag_delta :=/var drag_delta: Vector2 =/' "$PROJECT_PATH/main.gd"
+          sed -i 's/var c :=/var c: Color =/' "$PROJECT_PATH/main.gd"
+          sed -i '/gradle_build\/min_sdk=/d; /gradle_build\/target_sdk=/d' "$PROJECT_PATH/export_presets.cfg"
+
       - name: Validate project
         run: |
           cd "$PROJECT_PATH"
