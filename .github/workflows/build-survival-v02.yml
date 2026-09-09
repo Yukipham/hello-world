@@ -1,4 +1,4 @@
-name: Build Survival Village V0.2 APK
+name: Build Survival Village V0.3 APK
 
 on:
   push:
@@ -8,18 +8,24 @@ on:
 
 env:
   GODOT_VERSION: 4.5.1
-  PROJECT_PATH: survival-v02
-  EXPORT_NAME: SurvivalVillageV02
+  PROJECT_PATH: survival-v03
+  EXPORT_NAME: SurvivalVillageV03
 
 jobs:
   android-debug:
-    name: Android APK
+    name: Android APK V0.3
     runs-on: ubuntu-24.04
     container:
       image: barichello/godot-ci:4.5.1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Unpack V0.3 project
+        run: |
+          rm -rf "$PROJECT_PATH"
+          mkdir -p "$PROJECT_PATH"
+          unzip -q survival-v03.zip -d "$PROJECT_PATH"
 
       - name: Setup Godot export templates
         run: |
@@ -29,20 +35,16 @@ jobs:
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
           godot --version
 
-      - name: Normalize V0.2 for Godot 4.5.1 CI
-        run: |
-          sed -i 's/var drag_delta :=/var drag_delta: Vector2 =/' "$PROJECT_PATH/main.gd"
-          sed -i 's/var w := min(/var w: float = minf(/' "$PROJECT_PATH/main.gd"
-          sed -i 's/var c :=/var c: Color =/' "$PROJECT_PATH/main.gd"
-          sed -i '/gradle_build\/min_sdk=/d; /gradle_build\/target_sdk=/d' "$PROJECT_PATH/export_presets.cfg"
-          if ! grep -q 'textures/vram_compression/import_etc2_astc=true' "$PROJECT_PATH/project.godot"; then
-            echo 'textures/vram_compression/import_etc2_astc=true' >> "$PROJECT_PATH/project.godot"
-          fi
-
-      - name: Validate project
+      - name: Validate V0.3 scripts
+        shell: bash
         run: |
           cd "$PROJECT_PATH"
-          godot --headless --editor --quit
+          set -o pipefail
+          godot --headless --editor --quit 2>&1 | tee /tmp/v03-validate.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" /tmp/v03-validate.log; then
+            echo "Godot script validation failed"
+            exit 1
+          fi
 
       - name: Build Android APK
         run: |
@@ -54,6 +56,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SurvivalVillageV02-APK
-          path: build/android/SurvivalVillageV02.apk
+          name: SurvivalVillageV03-APK
+          path: build/android/SurvivalVillageV03.apk
           if-no-files-found: error
