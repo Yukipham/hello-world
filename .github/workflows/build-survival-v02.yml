@@ -32,8 +32,12 @@ jobs:
       - name: Normalize V0.2 for Godot 4.5.1 CI
         run: |
           sed -i 's/var drag_delta :=/var drag_delta: Vector2 =/' "$PROJECT_PATH/main.gd"
+          sed -i 's/var w := min(/var w: float = minf(/' "$PROJECT_PATH/main.gd"
           sed -i 's/var c :=/var c: Color =/' "$PROJECT_PATH/main.gd"
           sed -i '/gradle_build\/min_sdk=/d; /gradle_build\/target_sdk=/d' "$PROJECT_PATH/export_presets.cfg"
+          if ! grep -q 'textures/vram_compression/import_etc2_astc=true' "$PROJECT_PATH/project.godot"; then
+            echo 'textures/vram_compression/import_etc2_astc=true' >> "$PROJECT_PATH/project.godot"
+          fi
 
       - name: Validate project
         run: |
