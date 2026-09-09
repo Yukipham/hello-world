@@ -1,0 +1,49 @@
+name: Build Survival Village V0.2 APK
+
+on:
+  push:
+    branches:
+      - chatgpt-survival-v02-build
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.5.1
+  PROJECT_PATH: survival-v02
+  EXPORT_NAME: SurvivalVillageV02
+
+jobs:
+  android-debug:
+    name: Android APK
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:4.5.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot export templates
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mkdir -v -p ~/.config/
+          mv /root/.config/godot ~/.config/godot
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          godot --version
+
+      - name: Validate project
+        run: |
+          cd "$PROJECT_PATH"
+          godot --headless --editor --quit
+
+      - name: Build Android APK
+        run: |
+          mkdir -v -p build/android
+          EXPORT_DIR="$(readlink -f build/android)"
+          cd "$PROJECT_PATH"
+          godot --headless --verbose --export-debug "Android" "$EXPORT_DIR/${EXPORT_NAME}.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SurvivalVillageV02-APK
+          path: build/android/SurvivalVillageV02.apk
+          if-no-files-found: error
