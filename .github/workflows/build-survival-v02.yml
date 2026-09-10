@@ -100,12 +100,17 @@ jobs:
       - name: Verify APK
         shell: bash
         run: |
-          test -s "build/android/${EXPORT_NAME}.apk"
-          unzip -t "build/android/${EXPORT_NAME}.apk" >/dev/null
-          unzip -l "build/android/${EXPORT_NAME}.apk" | grep -q "AndroidManifest.xml"
-          unzip -l "build/android/${EXPORT_NAME}.apk" | grep -q "classes.dex"
-          unzip -l "build/android/${EXPORT_NAME}.apk" | grep -q "lib/arm64-v8a/libgodot_android.so"
-          sha256sum "build/android/${EXPORT_NAME}.apk"
+          set -euo pipefail
+          APK="build/android/${EXPORT_NAME}.apk"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          unzip -Z1 "$APK" > /tmp/v10-apk-files.txt
+          grep -Fxq "AndroidManifest.xml" /tmp/v10-apk-files.txt
+          grep -Fxq "classes.dex" /tmp/v10-apk-files.txt
+          grep -Fxq "lib/arm64-v8a/libgodot_android.so" /tmp/v10-apk-files.txt
+          APKSIGNER="$(find /usr/lib/android-sdk/build-tools -type f -name apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --verbose "$APK"
+          sha256sum "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
