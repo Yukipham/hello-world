@@ -26,13 +26,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "Payload part diagnostics:"
-          wc -c survival-v10-payload/*.b64
-          sha256sum survival-v10-payload/*.b64
+          echo "Checking exact payload segments..."
+          echo "960be0f65e22a6fd13640787316dd7bb76a7597b3dbffa07b62f517cbf247bdf  survival-v10-payload/p2_00.b64" | sha256sum -c -
+          echo "4bab902bd89ba3bd83a32cc441b90feee8d1959c8937ae5de128917b5ddb1718  survival-v10-payload/p2_01.b64" | sha256sum -c -
+          echo "42791fc29ed72d26e62eab8fd73fdc982f2d378374ae623c06ccfb18cae6eade  survival-v10-payload/p2_02.b64" | sha256sum -c -
+          echo "6077f5db99dba90cbf9fa174736150ccc32cb232f6627d27be166f67e5145848  survival-v10-payload/p2_03.b64" | sha256sum -c -
+          echo "ba587fb2cbe8f94edb73ba69ceb8b221882c2222c6f16a85a2fb4248af3f5909  survival-v10-payload/p2_04.b64" | sha256sum -c -
+          echo "cba3ad6cd18bd3233ccec18e1c54fbd76694af2a59805f8103ec20ec2e89f03f  survival-v10-payload/p2_05.b64" | sha256sum -c -
           cat survival-v10-payload/payload_00.b64 \
               survival-v10-payload/payload_01.b64 \
-              survival-v10-payload/payload_02a.b64 \
-              survival-v10-payload/payload_02b.b64 \
+              survival-v10-payload/p2_00.b64 \
+              survival-v10-payload/p2_01.b64 \
+              survival-v10-payload/p2_02.b64 \
+              survival-v10-payload/p2_03.b64 \
+              survival-v10-payload/p2_04.b64 \
+              survival-v10-payload/p2_05.b64 \
               survival-v10-payload/payload_03a.b64 \
               survival-v10-payload/payload_03b.b64 > /tmp/v10.b64
           base64 -d /tmp/v10.b64 > /tmp/v10.zip
@@ -43,6 +51,7 @@ jobs:
           test -f "$PROJECT_PATH/project.godot"
           test -f "$PROJECT_PATH/main.gd"
           test -f "$PROJECT_PATH/assets/player.png"
+          test -f "$PROJECT_PATH/assets/buildings.png"
           echo "V1.0 payload verified and unpacked."
 
       - name: Setup Godot export templates
