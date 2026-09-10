@@ -1,19 +1,20 @@
-name: Build Survival Village V0.3 APK
+name: Build Survival Village 1.0 APK
 
 on:
   push:
     branches:
-      - chatgpt-survival-v03-build
+      - chatgpt-survival-v10-build
   workflow_dispatch:
 
 env:
   GODOT_VERSION: 4.5.1
-  PROJECT_PATH: survival-v03-ci
-  EXPORT_NAME: SurvivalVillageV03
+  PROJECT_PATH: survival-v10
+  EXPORT_NAME: SurvivalVillageV10
+  PAYLOAD_SHA256: 0f14cceb515f0a669b6dddc80389c58a479c7bda5b4989b8ba7eed0d1e1c1ec0
 
 jobs:
   android-debug:
-    name: Android APK V0.3
+    name: Android APK 1.0
     runs-on: ubuntu-24.04
     container:
       image: barichello/godot-ci:4.5.1
@@ -21,12 +22,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Assemble V0.3 source
+      - name: Reassemble verified V1.0 project
+        shell: bash
         run: |
-          cd "$PROJECT_PATH"
-          cat part00.gd part01.gd part02.gd part03.gd part04.gd part05.gd > main.gd
-          sed -i 's/var d:=event.position-joy_origin/var d: Vector2 = event.position-joy_origin/' main.gd
-          wc -l main.gd
+          set -euo pipefail
+          cat survival-v10-payload/payload_00.b64 \
+              survival-v10-payload/payload_01.b64 \
+              survival-v10-payload/payload_02a.b64 \
+              survival-v10-payload/payload_02b.b64 \
+              survival-v10-payload/payload_03a.b64 \
+              survival-v10-payload/payload_03b.b64 > /tmp/v10.b64
+          base64 -d /tmp/v10.b64 > /tmp/v10.zip
+          echo "${PAYLOAD_SHA256}  /tmp/v10.zip" | sha256sum -c -
+          rm -rf "$PROJECT_PATH"
+          mkdir -p "$PROJECT_PATH"
+          unzip -q /tmp/v10.zip -d "$PROJECT_PATH"
+          test -f "$PROJECT_PATH/project.godot"
+          test -f "$PROJECT_PATH/main.gd"
+          test -f "$PROJECT_PATH/assets/player.png"
+          echo "V1.0 payload verified and unpacked."
 
       - name: Setup Godot export templates
         run: |
@@ -36,14 +50,27 @@ jobs:
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
           godot --version
 
-      - name: Validate V0.3 scripts
+      - name: Validate V1.0 project
         shell: bash
         run: |
           cd "$PROJECT_PATH"
           set -o pipefail
-          godot --headless --editor --quit 2>&1 | tee /tmp/v03-validate.log
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" /tmp/v03-validate.log; then
-            echo "Godot script validation failed"
+          godot --headless --editor --quit 2>&1 | tee /tmp/v10-validate.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script" /tmp/v10-validate.log; then
+            echo "Godot V1.0 validation failed"
+            exit 1
+          fi
+
+      - name: Smoke test main scene
+        shell: bash
+        run: |
+          cd "$PROJECT_PATH"
+          set -o pipefail
+          timeout 12s godot --headless --path . --quit-after 10 2>&1 | tee /tmp/v10-smoke.log || code=$?
+          code=${code:-0}
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
+          if grep -E "SCRIPT ERROR|Invalid access|Invalid call|Failed to load script" /tmp/v10-smoke.log; then
+            echo "Godot V1.0 smoke test failed"
             exit 1
           fi
 
@@ -54,9 +81,19 @@ jobs:
           cd "$PROJECT_PATH"
           godot --headless --verbose --export-debug "Android" "$EXPORT_DIR/${EXPORT_NAME}.apk"
 
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -s "build/android/${EXPORT_NAME}.apk"
+          unzip -t "build/android/${EXPORT_NAME}.apk" >/dev/null
+          unzip -l "build/android/${EXPORT_NAME}.apk" | grep -q "AndroidManifest.xml"
+          unzip -l "build/android/${EXPORT_NAME}.apk" | grep -q "classes.dex"
+          unzip -l "build/android/${EXPORT_NAME}.apk" | grep -q "lib/arm64-v8a/libgodot_android.so"
+          sha256sum "build/android/${EXPORT_NAME}.apk"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SurvivalVillageV03-APK
-          path: build/android/SurvivalVillageV03.apk
+          name: SurvivalVillageV10-APK
+          path: build/android/SurvivalVillageV10.apk
           if-no-files-found: error
